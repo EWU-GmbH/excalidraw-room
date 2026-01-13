@@ -2,8 +2,8 @@ FROM node:12-alpine
 
 WORKDIR /excalidraw-room
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 COPY tsconfig.json ./
 COPY src ./src
