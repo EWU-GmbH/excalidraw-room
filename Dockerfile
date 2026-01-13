@@ -2,12 +2,12 @@ FROM node:12-alpine
 
 WORKDIR /excalidraw-room
 
-COPY package.json yarn.lock ./
-RUN yarn
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN yarn build
+RUN npm run build
 
 EXPOSE 80
-CMD ["yarn", "start"]
+CMD ["npm", "start"]
