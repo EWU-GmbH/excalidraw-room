@@ -53,9 +53,11 @@ try {
     ioDebug("connection established!");
     io.to(`${socket.id}`).emit("init-room");
     socket.on("join-room", async (roomID) => {
+      console.log(`[Server] ${socket.id} joined room ${roomID}`);
       socketDebug(`${socket.id} has joined ${roomID}`);
       await socket.join(roomID);
       const sockets = await io.in(roomID).fetchSockets();
+      console.log(`[Server] Room ${roomID} now has ${sockets.length} clients:`, sockets.map(s => s.id));
       if (sockets.length <= 1) {
         io.to(`${socket.id}`).emit("first-in-room");
       } else {
@@ -72,6 +74,7 @@ try {
     socket.on(
       "server-broadcast",
       (roomID: string, data: any, iv?: Uint8Array) => {
+        console.log(`[Server] server-broadcast empfangen von ${socket.id} für Room ${roomID}`);
         socketDebug(`${socket.id} sends update to ${roomID}`);
         // Unterstütze sowohl verschlüsselte Daten (ArrayBuffer) als auch JSON
         if (data instanceof ArrayBuffer && iv) {
@@ -80,10 +83,30 @@ try {
           // JSON-Daten direkt broadcasten
           const socketsInRoom = io.sockets.adapter.rooms.get(roomID);
           const numClients = socketsInRoom ? socketsInRoom.size : 0;
+          const senderInRoom = socketsInRoom?.has(socket.id);
+          const otherClients = socketsInRoom ? Array.from(socketsInRoom).filter(id => id !== socket.id) : [];
+          
+          console.log(`[Server] Broadcasting JSON to room ${roomID}:`, {
+            numClients,
+            senderInRoom,
+            senderId: socket.id,
+            otherClients,
+            dataType: data?.type,
+            hasPayload: !!data?.payload,
+            elementCount: data?.payload?.elements?.length || 0
+          });
           socketDebug(`Broadcasting JSON to room ${roomID} (${numClients} clients)`, JSON.stringify(data).substring(0, 100));
+          
           // Broadcast an alle anderen Clients im Room (nicht an den Sender)
-          socket.broadcast.to(roomID).emit("server-broadcast", data);
+          // Verwende io.to().except() für zuverlässigeres Broadcasting
+          if (otherClients.length > 0) {
+            io.to(roomID).except(socket.id).emit("server-broadcast", data);
+            console.log(`[Server] Broadcast gesendet an ${otherClients.length} Clients im Room ${roomID}`);
+          } else {
+            console.warn(`[Server] Keine anderen Clients im Room ${roomID} zum Broadcasten`);
+          }
         } else {
+          console.warn(`[Server] Unknown data type for server-broadcast: ${typeof data}`);
           socketDebug(`Unknown data type for server-broadcast: ${typeof data}`);
         }
       },
