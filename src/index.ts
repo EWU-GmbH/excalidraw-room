@@ -80,7 +80,8 @@ try {
           // JSON-Daten direkt broadcasten
           const socketsInRoom = io.sockets.adapter.rooms.get(roomID);
           const numClients = socketsInRoom ? socketsInRoom.size : 0;
-          socketDebug(`Broadcasting JSON to room ${roomID} (${numClients} clients)`);
+          socketDebug(`Broadcasting JSON to room ${roomID} (${numClients} clients)`, JSON.stringify(data).substring(0, 100));
+          // Broadcast an alle anderen Clients im Room (nicht an den Sender)
           socket.broadcast.to(roomID).emit("server-broadcast", data);
         } else {
           socketDebug(`Unknown data type for server-broadcast: ${typeof data}`);
