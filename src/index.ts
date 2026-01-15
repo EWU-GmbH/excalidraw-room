@@ -76,9 +76,14 @@ try {
         // Unterstütze sowohl verschlüsselte Daten (ArrayBuffer) als auch JSON
         if (data instanceof ArrayBuffer && iv) {
           socket.broadcast.to(roomID).emit("client-broadcast", data, iv);
-        } else if (typeof data === 'object') {
+        } else if (typeof data === 'object' && data !== null) {
           // JSON-Daten direkt broadcasten
+          const socketsInRoom = io.sockets.adapter.rooms.get(roomID);
+          const numClients = socketsInRoom ? socketsInRoom.size : 0;
+          socketDebug(`Broadcasting JSON to room ${roomID} (${numClients} clients)`);
           socket.broadcast.to(roomID).emit("server-broadcast", data);
+        } else {
+          socketDebug(`Unknown data type for server-broadcast: ${typeof data}`);
         }
       },
     );
