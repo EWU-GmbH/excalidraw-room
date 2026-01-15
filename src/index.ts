@@ -71,9 +71,15 @@ try {
 
     socket.on(
       "server-broadcast",
-      (roomID: string, encryptedData: ArrayBuffer, iv: Uint8Array) => {
+      (roomID: string, data: any, iv?: Uint8Array) => {
         socketDebug(`${socket.id} sends update to ${roomID}`);
-        socket.broadcast.to(roomID).emit("client-broadcast", encryptedData, iv);
+        // Unterstütze sowohl verschlüsselte Daten (ArrayBuffer) als auch JSON
+        if (data instanceof ArrayBuffer && iv) {
+          socket.broadcast.to(roomID).emit("client-broadcast", data, iv);
+        } else if (typeof data === 'object') {
+          // JSON-Daten direkt broadcasten
+          socket.broadcast.to(roomID).emit("server-broadcast", data);
+        }
       },
     );
 
